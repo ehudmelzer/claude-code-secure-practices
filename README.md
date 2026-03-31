@@ -248,7 +248,28 @@ This bundle protects against the following threat categories:
 
 ## Installation
 
-### 1. Global Rules (apply to all projects on this machine)
+### Quick Install (recommended)
+
+One command to download, merge with existing config, and verify:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ehudmelzer/claude-code-secure-practices/main/install.sh | bash
+```
+
+The installer **merges with your existing configuration** — it will never overwrite your
+custom rules. Specifically:
+
+- **`CLAUDE.md`** — appends security rules below your existing content
+- **`settings.json`** — merges `allow`/`deny` arrays and `env` keys (deduplicates)
+- **`mcp_servers.json`** — skipped if you already have one
+- **Hook script** — always installed/updated
+
+**Prerequisites:** `node`, `jq` (for JSON merge). The installer will attempt to install
+`gitleaks` via Homebrew if no secret scanner is found.
+
+### Manual Install
+
+If you prefer to install manually or review files first:
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -263,11 +284,20 @@ brew install gitleaks       # recommended
 # brew install trufflehog   # alternative
 ```
 
-### 2. Per-Project Rules (apply to a specific repo)
+### Per-Project Rules
+
+Drop a customized template into any repo root:
 
 ```bash
-cp CLAUDE.project-template.md /path/to/your/project/CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/ehudmelzer/claude-code-secure-practices/main/CLAUDE.project-template.md -o /path/to/your/project/CLAUDE.md
 # Then edit it: fill in project name, stack, off-limits paths, safe defaults
+```
+
+### Verify Installation
+
+```bash
+# If you cloned the repo:
+./tests/verify-bundle.sh
 ```
 
 ---
