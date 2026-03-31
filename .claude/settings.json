@@ -67,14 +67,21 @@
 
   // ── ACCOUNT RESTRICTION: SessionStart Hook ────────────────
   // Claude Code does not natively support account allowlists.
-  // This hook runs at the start of every session and kills it
-  // if the authenticated account is not in the allowed list.
+  // This hook runs at the start of every session and validates
+  // the authenticated user's email against an allowed domain
+  // pattern. Unauthorized sessions are killed immediately.
   //
-  // HOW TO USE:
-  //   1. Replace the account IDs in ALLOWED_ACCOUNTS below
-  //      with your organization's Anthropic account IDs
-  //      (comma-separated, no spaces).
-  //   2. Uncomment the "hooks" block.
+  // TWO OPTIONS (uncomment one):
+  //
+  //   Option A — Email domain regex (recommended)
+  //     Set ALLOWED_DOMAIN to a regex matching your corporate
+  //     email domain(s). Examples:
+  //       Single domain:    @yourcompany\.com$
+  //       Multiple domains: @(yourcompany\.com|partner\.org)$
+  //
+  //   Option B — Account ID allowlist
+  //     Set ALLOWED to a comma-separated list of Anthropic
+  //     account IDs (no spaces).
   //
   // NOTE: This is a best-effort guardrail, not a hard boundary.
   // For true identity enforcement, use Anthropic's enterprise
@@ -83,10 +90,19 @@
 
   // "hooks": {
   //   "SessionStart": [
+  //
+  //     ── Option A: Email domain validation (recommended) ──
+  //     {
+  //       "type": "command",
+  //       "command": "ALLOWED_DOMAIN='@yourcompany\\.com$' && EMAIL=$(claude auth status 2>&1 | grep -oE '[^ ]+@[^ ]+' | head -1) && echo \"$EMAIL\" | grep -qE \"$ALLOWED_DOMAIN\" || { echo '❌ Only corporate email accounts are allowed. Contact your admin.'; exit 1; }"
+  //     }
+  //
+  //     ── Option B: Account ID allowlist ──
   //     {
   //       "type": "command",
   //       "command": "ALLOWED='acct_id_1,acct_id_2' && CURRENT=$(claude auth status 2>&1 | grep -oE '[a-f0-9-]{36}' | head -1) && echo \",$ALLOWED,\" | grep -q \",$CURRENT,\" || { echo '❌ Unauthorized account. Contact your admin.'; exit 1; }"
   //     }
+  //
   //   ]
   // },
 

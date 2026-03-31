@@ -101,12 +101,18 @@ via the `env` block in `settings.json`.
 #### Account Restriction (SessionStart Hook)
 
 Claude Code does not natively support account allowlists. This bundle includes a
-`SessionStart` hook (commented out by default) that validates the authenticated
-Anthropic account at session start and kills unauthorized sessions.
+`SessionStart` hook (commented out by default) that validates the authenticated user
+at session start and kills unauthorized sessions. Two options are provided:
+
+| Option | How It Works | Example |
+|--------|-------------|---------|
+| **A — Email domain regex** (recommended) | Matches the user's email against a domain pattern | `@yourcompany\.com$` or `@(corp\.com\|partner\.org)$` |
+| **B — Account ID allowlist** | Matches the Anthropic account UUID against a comma-separated list | `acct_id_1,acct_id_2` |
 
 **How to activate:**
 1. Uncomment the `hooks` block in `settings.json`
-2. Replace `acct_id_1,acct_id_2` with your organization's Anthropic account IDs
+2. Choose Option A or B and remove the other
+3. Replace the placeholder domain/IDs with your values
 
 > **Note:** This is a best-effort guardrail, not a hard identity boundary. For true
 > enforcement, use Anthropic's enterprise SSO / domain capture features.
