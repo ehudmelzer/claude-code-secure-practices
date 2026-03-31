@@ -235,7 +235,7 @@ This bundle protects against the following threat categories:
 | 4 | **Privilege Escalation** | Claude runs `sudo`, creates persistence mechanisms, or installs system packages | `settings.json` denies `sudo`, `su`, `crontab`, `launchctl`, `systemctl`, `apt install`, `npm install -g` |
 | 5 | **MCP Server Injection** | Connected MCP server returns a response containing embedded instructions | MCP config ships empty; `CLAUDE.md` classifies tool results as untrusted data |
 | 6 | **Shadow Usage / Audit Gap** | Claude is used on endpoints without security team visibility | OTel telemetry exports all tool calls, API requests, costs, and permission decisions to your SIEM |
-| 8 | **Secret Commit** | Claude accidentally commits credentials, API keys, or tokens to git | PreToolUse hook scans staged changes with gitleaks/trufflehog and blocks the commit |
+| 7 | **Secret Commit** | Claude accidentally commits credentials, API keys, or tokens to git | PreToolUse hook scans staged changes with gitleaks/trufflehog and blocks the commit |
 
 ---
 
