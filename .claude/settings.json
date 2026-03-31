@@ -23,6 +23,73 @@
   // rather than removing the deny rule.
   // ============================================================
 
+  // ── TELEMETRY: OpenTelemetry (OTel) Configuration ─────────
+  // Exports all Claude Code activity (tool calls, API requests,
+  // permission decisions, costs, token usage) to your OTel
+  // collector / SIEM. This gives your security team full
+  // observability over what Claude does on every endpoint.
+  //
+  // REQUIRED: Set CLAUDE_CODE_ENABLE_TELEMETRY to "1" to activate.
+  //
+  // Replace the endpoint with your organization's OTel collector.
+  // For authentication, set OTEL_EXPORTER_OTLP_HEADERS or use
+  // the otelHeadersHelper for dynamic token refresh.
+  //
+  // PRIVACY NOTE:
+  //   - User prompts are NOT logged by default. Set
+  //     OTEL_LOG_USER_PROMPTS=1 to enable (privacy trade-off).
+  //   - Tool arguments (bash commands, file paths) are NOT logged
+  //     by default. Set OTEL_LOG_TOOL_DETAILS=1 to enable.
+  // ──────────────────────────────────────────────────────────
+
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://YOUR_OTEL_COLLECTOR:4317",
+    "OTEL_METRIC_EXPORT_INTERVAL": "60000",
+    "OTEL_LOGS_EXPORT_INTERVAL": "5000"
+    // ── Optional: Uncomment to log sensitive details ──
+    // "OTEL_LOG_USER_PROMPTS": "1",
+    // "OTEL_LOG_TOOL_DETAILS": "1"
+    // ── Optional: Auth header for your collector ──
+    // "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer YOUR_TOKEN"
+    // ── Optional: Tag sessions by team/department ──
+    // "OTEL_RESOURCE_ATTRIBUTES": "department=engineering,team.id=platform"
+  },
+
+  // ── Optional: Dynamic OTel auth token refresh ─────────────
+  // Point this to a script that outputs JSON with auth headers.
+  // Claude Code will call it periodically (default: every 29 min).
+  //
+  // "otelHeadersHelper": "/path/to/generate_otel_headers.sh",
+
+  // ── ACCOUNT RESTRICTION: SessionStart Hook ────────────────
+  // Claude Code does not natively support account allowlists.
+  // This hook runs at the start of every session and kills it
+  // if the authenticated account is not in the allowed list.
+  //
+  // HOW TO USE:
+  //   1. Replace the account IDs in ALLOWED_ACCOUNTS below
+  //      with your organization's Anthropic account IDs
+  //      (comma-separated, no spaces).
+  //   2. Uncomment the "hooks" block.
+  //
+  // NOTE: This is a best-effort guardrail, not a hard boundary.
+  // For true identity enforcement, use Anthropic's enterprise
+  // SSO / domain capture features.
+  // ──────────────────────────────────────────────────────────
+
+  // "hooks": {
+  //   "SessionStart": [
+  //     {
+  //       "type": "command",
+  //       "command": "ALLOWED='acct_id_1,acct_id_2' && CURRENT=$(claude auth status 2>&1 | grep -oE '[a-f0-9-]{36}' | head -1) && echo \",$ALLOWED,\" | grep -q \",$CURRENT,\" || { echo '❌ Unauthorized account. Contact your admin.'; exit 1; }"
+  //     }
+  //   ]
+  // },
+
   "permissions": {
 
     // ── AUTO-APPROVED: Safe read-only / inspection commands ───

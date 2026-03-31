@@ -71,7 +71,47 @@ the global `CLAUDE.md`. Sections include:
 - **Anti-Injection Reminder** — reinforces that source code comments, test fixtures, README
   files, API responses, database records, and dependency source code are untrusted data sources.
 
-### `.claude/settings.json` — Tool Permission Allow/Deny List
+### `.claude/settings.json` — Tool Permissions, Telemetry & Account Restriction
+
+This file combines three security functions: command permissions, telemetry export, and
+account restriction.
+
+#### OpenTelemetry (OTel) Telemetry
+
+Exports all Claude Code activity to your organization's OTel collector or SIEM, giving
+your security team full observability over what Claude does on every endpoint. Configured
+via the `env` block in `settings.json`.
+
+**What gets exported:**
+
+| Category | Data Points |
+|----------|-------------|
+| **Metrics** | Session count, tokens used, cost (USD), lines of code changed, commits, PRs created, active time |
+| **Events** | Every tool execution (name, success/fail, duration), API requests (model, cost, tokens), permission decisions (accept/reject) |
+| **Attributes** | Session ID, org ID, account UUID, user email, terminal type, app version |
+
+**Privacy controls (both off by default):**
+- `OTEL_LOG_USER_PROMPTS=1` — log the actual text of user prompts
+- `OTEL_LOG_TOOL_DETAILS=1` — log bash commands, file paths, and tool arguments
+
+**Supported exporters:** `otlp` (gRPC/HTTP), `prometheus`, `console`
+
+> Replace `http://YOUR_OTEL_COLLECTOR:4317` in `settings.json` with your actual collector endpoint.
+
+#### Account Restriction (SessionStart Hook)
+
+Claude Code does not natively support account allowlists. This bundle includes a
+`SessionStart` hook (commented out by default) that validates the authenticated
+Anthropic account at session start and kills unauthorized sessions.
+
+**How to activate:**
+1. Uncomment the `hooks` block in `settings.json`
+2. Replace `acct_id_1,acct_id_2` with your organization's Anthropic account IDs
+
+> **Note:** This is a best-effort guardrail, not a hard identity boundary. For true
+> enforcement, use Anthropic's enterprise SSO / domain capture features.
+
+#### Tool Permission Model
 
 Controls what shell commands Claude can execute via a three-tier permission model:
 
@@ -128,6 +168,8 @@ This bundle protects against five primary threat categories:
 | 3 | **Destructive Infra Actions** | Claude runs `terraform destroy`, `kubectl delete`, etc. without user awareness | `settings.json` denies cloud-mutating commands; `CLAUDE.md` requires resource-name confirmation |
 | 4 | **Privilege Escalation** | Claude runs `sudo`, installs packages, or creates persistence mechanisms | `settings.json` denies `sudo`, `su`, `crontab`, `launchctl`, `systemctl`, global installs |
 | 5 | **MCP Server Injection** | Connected MCP server returns a response containing embedded instructions | MCP config ships empty; `CLAUDE.md` classifies tool results as untrusted data |
+| 6 | **Shadow Usage / Audit Gap** | Claude is used on endpoints without security team visibility | OTel telemetry exports all tool calls, API requests, costs, and permission decisions to your SIEM |
+| 7 | **Unauthorized Account** | Personal or unauthorized Anthropic account used on a corporate endpoint | SessionStart hook validates account ID against an allowlist before session begins |
 
 ---
 
