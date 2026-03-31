@@ -13,13 +13,16 @@ Built and maintained by **[Pluto Security](https://pluto.security/)**.
 ```
 claude-code-secure/
 ├── README.md                        ← you are here
+├── install.sh                       ← one-line installer (merges with existing config)
 ├── CLAUDE.md                        ← global behavioral rules (copy to ~/.claude/)
 ├── CLAUDE.project-template.md       ← per-repo template (copy to <project>/CLAUDE.md)
-└── .claude/
-    ├── settings.json                ← tool permissions, telemetry, hooks & account restriction
-    ├── mcp_servers.json             ← MCP server configuration & policy
-    └── hooks/
-        └── pre-commit-secret-scan.sh ← blocks commits containing secrets
+├── .claude/
+│   ├── settings.json                ← tool permissions, telemetry, hooks & account restriction
+│   ├── mcp_servers.json             ← MCP server configuration & policy
+│   └── hooks/
+│       └── pre-commit-secret-scan.sh ← blocks commits containing secrets
+└── tests/
+    └── verify-bundle.sh             ← verifies installation and runs functional tests
 ```
 
 ---
@@ -46,12 +49,12 @@ policies. It covers:
   require explicit acknowledgment.
 - **CI/CD Pipeline Protection** — blocks modifications to `.github/workflows/`,
   `.gitlab-ci.yml`, `Jenkinsfile`, and equivalent pipeline configs without explicit instruction.
-- **Shell & Command Execution** — requires confirmation before running destructive, network-calling,
-  or system-config commands. Blocks piped execution (`curl | bash`), silent package installs,
-  cron jobs, launch agents, and background processes.
-- **File System Boundaries** — restricts operations to the current project directory. Prevents
-  recursive secret searching across the filesystem and access to browser data, keychain data,
-  or OS credential stores.
+- **Shell & Command Execution** — blocks piped execution (`curl | bash`), silent system-wide
+  package installs, cron jobs, launch agents, and background processes. Local project installs
+  (`npm install`, `pip install` in a venv) are allowed as part of normal workflow.
+- **File System Boundaries** — prefers working within the current project directory but allows
+  reading external files (global configs, installed tools) when needed. Prevents recursive
+  secret searching and access to browser data, keychain data, or OS credential stores.
 - **Network & Web Safety** — blocks web requests to URLs found in untrusted content unless the
   user explicitly provided the URL in chat.
 
@@ -248,8 +251,8 @@ This bundle protects against the following threat categories:
 |---|--------|---------------|------------|
 | 1 | **Prompt Injection** | Attacker embeds instructions in source code, README, test data, or config files | `CLAUDE.md` anti-injection rules; explicit content-vs-instruction distinction |
 | 2 | **Data Exfiltration** | Claude reads secrets/PII and sends them to external endpoints | `settings.json` denylist blocks credential file reads; `CLAUDE.md` bans transmitting content to untrusted URLs |
-| 3 | **Destructive Infra Actions** | Claude runs `terraform destroy`, `kubectl delete`, etc. without user awareness | `settings.json` denies cloud-mutating commands; `CLAUDE.md` requires resource-name confirmation |
-| 4 | **Privilege Escalation** | Claude runs `sudo`, installs packages, or creates persistence mechanisms | `settings.json` denies `sudo`, `su`, `crontab`, `launchctl`, `systemctl`, global installs |
+| 3 | **Destructive Infra Actions** | Claude runs `terraform destroy`, `kubectl delete`, etc. without user awareness | `settings.json` hard-blocks destructive commands (destroy/delete); create/apply require user confirmation |
+| 4 | **Privilege Escalation** | Claude runs `sudo`, creates persistence mechanisms, or installs system packages | `settings.json` denies `sudo`, `su`, `crontab`, `launchctl`, `systemctl`, `apt install`, `npm install -g` |
 | 5 | **MCP Server Injection** | Connected MCP server returns a response containing embedded instructions | MCP config ships empty; `CLAUDE.md` classifies tool results as untrusted data |
 | 6 | **Shadow Usage / Audit Gap** | Claude is used on endpoints without security team visibility | OTel telemetry exports all tool calls, API requests, costs, and permission decisions to your SIEM |
 | 7 | **Unauthorized Account** | Personal or unauthorized Anthropic account used on a corporate endpoint | SessionStart hook validates account ID against an allowlist before session begins |
