@@ -300,4 +300,4 @@ MIT
 
 ## Credits
 
-Created by **[Pluto Security](https://pluto.security/)** — AI-powered security operations for modern enterprises.
+Created by **[Pluto Security](https://pluto.security/)** — Pluto protects modern creation workflows (across AI builders, developer tools, and business workspaces) with visibility, risk understanding, and real-time guardrails. Built for how work actually happens.
