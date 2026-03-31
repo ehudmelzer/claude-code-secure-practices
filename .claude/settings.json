@@ -106,6 +106,36 @@
   //   ]
   // },
 
+  // ── SECRET SCANNING: Pre-commit Hook ──────────────────────
+  // Runs a secret scanner (gitleaks or trufflehog) on staged
+  // changes before every git commit. If secrets are detected,
+  // the commit is blocked and Claude is told to remove them.
+  //
+  // If no scanner is installed, the user is warned but the
+  // commit is not blocked.
+  //
+  // Install a scanner:
+  //   brew install gitleaks       (recommended)
+  //   brew install trufflehog     (alternative)
+  // ──────────────────────────────────────────────────────────
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit *)",
+            "command": ".claude/hooks/pre-commit-secret-scan.sh",
+            "timeout": 30,
+            "statusMessage": "Scanning staged changes for secrets..."
+          }
+        ]
+      }
+    ]
+  },
+
   "permissions": {
 
     // ── AUTO-APPROVED: Safe read-only / inspection commands ───

@@ -16,8 +16,10 @@ claude-code-secure/
 ├── CLAUDE.md                        ← global behavioral rules (copy to ~/.claude/)
 ├── CLAUDE.project-template.md       ← per-repo template (copy to <project>/CLAUDE.md)
 └── .claude/
-    ├── settings.json                ← tool permission allowlist/denylist
-    └── mcp_servers.json             ← MCP server configuration & policy
+    ├── settings.json                ← tool permissions, telemetry, hooks & account restriction
+    ├── mcp_servers.json             ← MCP server configuration & policy
+    └── hooks/
+        └── pre-commit-secret-scan.sh ← blocks commits containing secrets
 ```
 
 ---
@@ -117,6 +119,30 @@ at session start and kills unauthorized sessions. Two options are provided:
 > **Note:** This is a best-effort guardrail, not a hard identity boundary. For true
 > enforcement, use Anthropic's enterprise SSO / domain capture features.
 
+#### Pre-commit Secret Scanning (PreToolUse Hook)
+
+A `PreToolUse` hook that intercepts every `git commit` command and scans staged changes
+for exposed secrets before the commit is created. **This hook is active by default.**
+
+**How it works:**
+1. Claude initiates a `git commit` command
+2. The hook runs `gitleaks` (or `trufflehog` as fallback) on `git diff --cached`
+3. If secrets are detected → commit is **blocked** and Claude is told to remove them
+4. If no secrets found → commit proceeds normally
+5. If no scanner is installed → user is **warned** but commit is not blocked
+
+**Supported scanners (install one):**
+```bash
+brew install gitleaks       # recommended
+brew install trufflehog     # alternative
+```
+
+**What it catches:** API keys, tokens, passwords, private keys, cloud credentials, and
+other secret patterns defined by the scanner's rule set.
+
+> This complements the `settings.json` deny rules (which block `cat .env`, etc.) by
+> catching secrets that make it into staged code — the last line of defense before commit.
+
 #### Tool Permission Model
 
 Controls what shell commands Claude can execute via a three-tier permission model:
@@ -176,6 +202,7 @@ This bundle protects against five primary threat categories:
 | 5 | **MCP Server Injection** | Connected MCP server returns a response containing embedded instructions | MCP config ships empty; `CLAUDE.md` classifies tool results as untrusted data |
 | 6 | **Shadow Usage / Audit Gap** | Claude is used on endpoints without security team visibility | OTel telemetry exports all tool calls, API requests, costs, and permission decisions to your SIEM |
 | 7 | **Unauthorized Account** | Personal or unauthorized Anthropic account used on a corporate endpoint | SessionStart hook validates account ID against an allowlist before session begins |
+| 8 | **Secret Commit** | Claude accidentally commits credentials, API keys, or tokens to git | PreToolUse hook scans staged changes with gitleaks/trufflehog and blocks the commit |
 
 ---
 
@@ -184,10 +211,16 @@ This bundle protects against five primary threat categories:
 ### 1. Global Rules (apply to all projects on this machine)
 
 ```bash
-mkdir -p ~/.claude
+mkdir -p ~/.claude/hooks
 cp CLAUDE.md ~/.claude/CLAUDE.md
 cp .claude/settings.json ~/.claude/settings.json
 cp .claude/mcp_servers.json ~/.claude/mcp_servers.json
+cp .claude/hooks/pre-commit-secret-scan.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/pre-commit-secret-scan.sh
+
+# Install a secret scanner (pick one)
+brew install gitleaks       # recommended
+# brew install trufflehog   # alternative
 ```
 
 ### 2. Per-Project Rules (apply to a specific repo)
