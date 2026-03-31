@@ -1,0 +1,133 @@
+{
+  // ============================================================
+  // Claude Code — Endpoint Security Settings
+  // Place at: ~/.claude/settings.json  (global, all projects)
+  //       or: <project>/.claude/settings.json  (project-scoped)
+  //
+  // HOW PERMISSIONS WORK — THREE TIERS:
+  //
+  //   "allow"  → auto-approved, Claude proceeds without asking
+  //   (absent) → Claude asks for confirmation before proceeding
+  //   "deny"   → HARD BLOCK, Claude cannot perform this action
+  //              even if the user explicitly says "yes, do it"
+  //
+  // Strategy used here:
+  //   - Low-risk read/inspect commands → allow (no friction)
+  //   - Medium-risk commands (file writes, git commits, etc.)
+  //     → not listed = Claude asks first (good default)
+  //   - Irreversible / high-impact / exfiltration-risk commands
+  //     → deny (no exceptions, ever)
+  //
+  // Deny is intentionally strict. If you find a legitimate use
+  // for a denied command, grant it explicitly at the task level
+  // rather than removing the deny rule.
+  // ============================================================
+
+  "permissions": {
+
+    // ── AUTO-APPROVED: Safe read-only / inspection commands ───
+    // Claude will not ask before running these.
+    "allow": [
+      "Bash(git status)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(pwd)",
+      "Bash(whoami)",
+      "Bash(which *)",
+      "Bash(python* --version)",
+      "Bash(node --version)",
+      "Bash(npm list*)",
+      "Bash(pip list*)"
+    ],
+
+    // ── NOTE: anything NOT listed above and NOT denied below ──
+    // falls into the middle tier: Claude will ask for confirmation
+    // before running it. This covers file writes, git commits,
+    // npm install (local), running tests, starting servers, etc.
+    // That's intentional — medium-risk = ask, don't block.
+
+    // ── HARD BLOCKED: Never permitted under any circumstances ─
+    // These cannot be unlocked by user confirmation in the chat.
+    // To legitimately use one of these, run it yourself in terminal.
+    "deny": [
+
+      // ── Destructive filesystem ops ──
+      "Bash(rm -rf *)",
+      "Bash(rm -f *)",
+      "Bash(shred *)",
+      "Bash(mkfs*)",
+      "Bash(dd *)",
+
+      // ── Secrets reading ──
+      // Prevents Claude from reading or printing credential files.
+      // Note: "cat *" is in allow above, so these deny rules must
+      // be more specific to override (deny takes precedence).
+      "Bash(cat *id_rsa*)",
+      "Bash(cat *id_ed25519*)",
+      "Bash(cat *.pem)",
+      "Bash(cat *.key)",
+      "Bash(cat .env*)",
+      "Bash(cat *credentials*)",
+      "Bash(cat ~/.aws*)",
+      "Bash(cat ~/.kube/config*)",
+      "Bash(cat *.token)",
+      "Bash(printenv *SECRET*)",
+      "Bash(printenv *KEY*)",
+      "Bash(printenv *TOKEN*)",
+      "Bash(printenv *PASSWORD*)",
+
+      // ── Exfiltration / piped execution ──
+      // Prevents downloading-and-executing scripts and sending
+      // file contents to external endpoints.
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(curl -d @*)",
+      "Bash(curl --data @*)",
+      "Bash(nc *)",
+      "Bash(netcat *)",
+
+      // ── Privilege escalation ──
+      "Bash(sudo *)",
+      "Bash(su *)",
+      "Bash(chmod 777 *)",
+      "Bash(doas *)",
+
+      // ── Persistence mechanisms ──
+      "Bash(crontab *)",
+      "Bash(launchctl *)",
+      "Bash(systemctl enable *)",
+      "Bash(nohup * &)",
+
+      // ── Cloud / infra mutations ──
+      // Read-only cloud commands (aws s3 ls, kubectl get, etc.)
+      // are NOT denied — they fall into the "ask" tier instead.
+      // Only state-changing / destructive actions are hard-blocked.
+      "Bash(terraform apply*)",
+      "Bash(terraform destroy*)",
+      "Bash(aws * delete*)",
+      "Bash(aws * put-*)",
+      "Bash(aws * create-*)",
+      "Bash(aws * update-*)",
+      "Bash(gcloud * delete*)",
+      "Bash(gcloud * create*)",
+      "Bash(kubectl delete *)",
+      "Bash(kubectl apply *)",
+      "Bash(kubectl exec *)",
+
+      // ── Silent global package installation ──
+      "Bash(apt-get install *)",
+      "Bash(apt install *)",
+      "Bash(brew install *)",
+      "Bash(npm install -g *)",
+      "Bash(pip install --break-system*)"
+    ]
+  }
+}
