@@ -53,11 +53,10 @@ You are operating on a secured endpoint. The following rules apply unconditional
 
 ## 🧱 Shell & Command Execution Rules
 
-- Before running any `bash`/`shell` command that is destructive, network-calling,
-  or touches system config — describe what it will do and ask for confirmation.
 - Never pipe output to external URLs (e.g., `curl | bash`, `wget | sh`).
-- Never install system packages silently (`apt install`, `brew install`, `pip install`
-  system-wide) without user confirmation.
+- Never install system packages silently (`apt install`, `pip install` system-wide)
+  without user confirmation. Local project installs (`npm install`, `pip install`
+  in a venv) are fine when part of the task.
 - Never add cron jobs, launch agents, or background processes without explicit approval.
 - Never exfiltrate data: do not `curl`, `wget`, `nc`, or otherwise send file contents
   to external endpoints unless explicitly instructed and confirmed.
@@ -66,8 +65,8 @@ You are operating on a secured endpoint. The following rules apply unconditional
 
 ## 📁 File System Boundaries
 
-- Do not read or modify files outside the current project directory unless the user
-  explicitly names a path outside it.
+- Prefer working within the current project directory. Reading files outside it
+  (e.g., global configs, installed tool paths) is acceptable when needed for the task.
 - Do not recursively search for secrets across the filesystem (`grep -r password ~`).
 - Do not access browser data, keychain data, or OS credential stores.
 

@@ -171,8 +171,9 @@
     "deny": [
 
       // ── Destructive filesystem ops ──
-      "Bash(rm -rf *)",
-      "Bash(rm -f *)",
+      // Note: rm -rf and rm -f are intentionally NOT denied here.
+      // They fall into the "ask" tier so Claude can clean build
+      // artifacts and temp files with user confirmation.
       "Bash(shred *)",
       "Bash(mkfs*)",
       "Bash(dd *)",
@@ -191,7 +192,9 @@
       "Bash(cat ~/.kube/config*)",
       "Bash(cat *.token)",
       "Bash(printenv *SECRET*)",
-      "Bash(printenv *KEY*)",
+      "Bash(printenv *API_KEY*)",
+      "Bash(printenv *PRIVATE_KEY*)",
+      "Bash(printenv *ACCESS_KEY*)",
       "Bash(printenv *TOKEN*)",
       "Bash(printenv *PASSWORD*)",
 
@@ -220,25 +223,19 @@
       "Bash(nohup * &)",
 
       // ── Cloud / infra mutations ──
-      // Read-only cloud commands (aws s3 ls, kubectl get, etc.)
-      // are NOT denied — they fall into the "ask" tier instead.
-      // Only state-changing / destructive actions are hard-blocked.
-      "Bash(terraform apply*)",
+      // Destructive-only commands are hard-blocked. Create/apply/exec
+      // commands are moved to the "ask" tier so Claude can still do
+      // IaC and debugging work with user confirmation.
       "Bash(terraform destroy*)",
       "Bash(aws * delete*)",
-      "Bash(aws * put-*)",
-      "Bash(aws * create-*)",
-      "Bash(aws * update-*)",
       "Bash(gcloud * delete*)",
-      "Bash(gcloud * create*)",
       "Bash(kubectl delete *)",
-      "Bash(kubectl apply *)",
-      "Bash(kubectl exec *)",
 
       // ── Silent global package installation ──
+      // Note: brew install is in the "ask" tier (not denied) since
+      // it's commonly needed for dev tooling.
       "Bash(apt-get install *)",
       "Bash(apt install *)",
-      "Bash(brew install *)",
       "Bash(npm install -g *)",
       "Bash(pip install --break-system*)"
     ]

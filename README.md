@@ -150,21 +150,32 @@ Controls what shell commands Claude can execute via a three-tier permission mode
 | Tier | Behavior | Examples |
 |------|----------|----------|
 | **Allow** (auto-approved) | Claude runs without asking | `git status`, `git log`, `git diff`, `ls`, `cat`, `pwd`, `whoami`, version checks |
-| **Unlisted** (ask first) | Claude asks for user confirmation | File writes, `git commit`, `npm install` (local), running tests, starting servers |
+| **Unlisted** (ask first) | Claude asks for user confirmation | File writes, `git commit`, `npm install` (local), running tests, `rm -rf`, `terraform apply`, `kubectl apply/exec`, `brew install`, cloud create/update commands |
 | **Deny** (hard block) | Cannot be executed even if user says yes | See categories below |
 
-**Denied command categories:**
+**Denied command categories (hard-blocked):**
 
-- **Destructive filesystem** — `rm -rf`, `rm -f`, `shred`, `mkfs`, `dd`
-- **Secrets reading** — `cat` on credential files (`.env`, `*.pem`, `*.key`, SSH keys, AWS/Kube configs, tokens), `printenv` for secrets/keys/tokens/passwords
+- **Destructive filesystem** — `shred`, `mkfs`, `dd`
+- **Secrets reading** — `cat` on credential files (`.env`, `*.pem`, `*.key`, SSH keys, AWS/Kube configs, tokens), `printenv` for secrets/passwords/tokens
 - **Exfiltration / piped execution** — `curl|bash`, `wget|sh`, `curl -d @file`, `nc`, `netcat`
 - **Privilege escalation** — `sudo`, `su`, `chmod 777`, `doas`
 - **Persistence mechanisms** — `crontab`, `launchctl`, `systemctl enable`, `nohup &`
-- **Cloud/infra mutations** — `terraform apply/destroy`, `aws` create/delete/put/update, `gcloud` create/delete, `kubectl delete/apply/exec`
-- **Global package installs** — `apt install`, `brew install`, `npm install -g`, `pip install --break-system`
+- **Cloud/infra deletions** — `terraform destroy`, `aws * delete`, `gcloud * delete`, `kubectl delete`
+- **Global package installs** — `apt install`, `npm install -g`, `pip install --break-system`
 
-> **Note:** Read-only cloud commands (`aws s3 ls`, `kubectl get`, etc.) are intentionally NOT
-> denied — they fall into the "ask" tier. Only state-changing actions are hard-blocked.
+**Moved to "ask" tier (user confirms each time):**
+
+These commands are common in legitimate development workflows, so they require
+user confirmation rather than a hard block:
+
+- `rm -rf`, `rm -f` — needed for cleaning build artifacts, `node_modules`, temp files
+- `terraform apply`, `kubectl apply`, `kubectl exec` — needed for IaC and debugging
+- `aws create/put/update`, `gcloud create` — needed for cloud development
+- `brew install` — commonly needed for dev tooling
+
+> **Design principle:** Hard-block only truly dangerous or irreversible actions.
+> For everything else, the "ask" tier lets the user decide per-command — security
+> without sacrificing functionality.
 
 ### `.claude/mcp_servers.json` — MCP Server Configuration
 
