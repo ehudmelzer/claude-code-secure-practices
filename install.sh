@@ -56,7 +56,7 @@ echo ""
 echo -e "  ${GREEN}•${RESET} ${BOLD}CLAUDE.md${RESET}                — Anti-prompt-injection rules, secrets protection,"
 echo -e "                                cloud/infra guardrails, shell execution policy"
 echo -e "  ${GREEN}•${RESET} ${BOLD}settings.json${RESET}            — Tool permission allow/deny list, OpenTelemetry"
-echo -e "                                telemetry export, account restriction hook"
+echo -e "                                telemetry export"
 echo -e "  ${GREEN}•${RESET} ${BOLD}mcp_servers.json${RESET}         — Empty MCP baseline (secure by default)"
 echo -e "  ${GREEN}•${RESET} ${BOLD}pre-commit-secret-scan${RESET}   — Hook that blocks commits containing secrets"
 echo -e "  ${GREEN}•${RESET} ${BOLD}gitleaks${RESET}                 — Secret scanner (if not already installed)"
@@ -195,16 +195,12 @@ if [ -f ~/.claude/settings.json ]; then
     # Merge hooks.PreToolUse: concatenate arrays
     (($existing.hooks.PreToolUse // []) + ($new.hooks.PreToolUse // [])) as $merged_pre_tool |
 
-    # Merge hooks.SessionStart: concatenate arrays
-    (($existing.hooks.SessionStart // []) + ($new.hooks.SessionStart // [])) as $merged_session_start |
-
     # Build merged config
     $existing * $new |
     .env = $merged_env |
     .permissions.allow = $merged_allow |
     .permissions.deny = $merged_deny |
-    .hooks.PreToolUse = $merged_pre_tool |
-    (if ($merged_session_start | length) > 0 then .hooks.SessionStart = $merged_session_start else . end)
+    .hooks.PreToolUse = $merged_pre_tool
   ')
 
   echo "$MERGED" | jq '.' > ~/.claude/settings.json
@@ -331,10 +327,6 @@ echo -e "${BOLD}📋 Optional — configure manually:${RESET}"
 echo ""
 echo -e "  ${YELLOW}○${RESET}  Set your OTel collector endpoint in ~/.claude/settings.json"
 echo -e "     ${DIM}Replace: http://YOUR_OTEL_COLLECTOR:4317${RESET}"
-echo ""
-echo -e "  ${YELLOW}○${RESET}  Enable account restriction (email domain validation)"
-echo -e "     ${DIM}Uncomment the SessionStart hook in ~/.claude/settings.json${RESET}"
-echo -e "     ${DIM}Set ALLOWED_DOMAIN to your corporate email domain${RESET}"
 echo ""
 echo -e "  ${YELLOW}○${RESET}  Add per-project rules to any repo:"
 echo -e "     ${DIM}curl -fsSL $REPO_RAW/CLAUDE.project-template.md -o ./CLAUDE.md${RESET}"

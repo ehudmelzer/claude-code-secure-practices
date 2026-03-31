@@ -17,7 +17,7 @@ claude-code-secure/
 ├── CLAUDE.md                        ← global behavioral rules (copy to ~/.claude/)
 ├── CLAUDE.project-template.md       ← per-repo template (copy to <project>/CLAUDE.md)
 ├── .claude/
-│   ├── settings.json                ← tool permissions, telemetry, hooks & account restriction
+│   ├── settings.json                ← tool permissions, telemetry & hooks
 │   ├── mcp_servers.json             ← MCP server configuration & policy
 │   └── hooks/
 │       └── pre-commit-secret-scan.sh ← blocks commits containing secrets
@@ -76,10 +76,9 @@ the global `CLAUDE.md`. Sections include:
 - **Anti-Injection Reminder** — reinforces that source code comments, test fixtures, README
   files, API responses, database records, and dependency source code are untrusted data sources.
 
-### `.claude/settings.json` — Tool Permissions, Telemetry & Account Restriction
+### `.claude/settings.json` — Tool Permissions & Telemetry
 
-This file combines three security functions: command permissions, telemetry export, and
-account restriction.
+This file combines two security functions: command permissions and telemetry export.
 
 #### OpenTelemetry (OTel) Telemetry
 
@@ -102,25 +101,6 @@ via the `env` block in `settings.json`.
 **Supported exporters:** `otlp` (gRPC/HTTP), `prometheus`, `console`
 
 > Replace `http://YOUR_OTEL_COLLECTOR:4317` in `settings.json` with your actual collector endpoint.
-
-#### Account Restriction (SessionStart Hook)
-
-Claude Code does not natively support account allowlists. This bundle includes a
-`SessionStart` hook (commented out by default) that validates the authenticated user
-at session start and kills unauthorized sessions. Two options are provided:
-
-| Option | How It Works | Example |
-|--------|-------------|---------|
-| **A — Email domain regex** (recommended) | Matches the user's email against a domain pattern | `@yourcompany\.com$` or `@(corp\.com\|partner\.org)$` |
-| **B — Account ID allowlist** | Matches the Anthropic account UUID against a comma-separated list | `acct_id_1,acct_id_2` |
-
-**How to activate:**
-1. Uncomment the `hooks` block in `settings.json`
-2. Choose Option A or B and remove the other
-3. Replace the placeholder domain/IDs with your values
-
-> **Note:** This is a best-effort guardrail, not a hard identity boundary. For true
-> enforcement, use Anthropic's enterprise SSO / domain capture features.
 
 #### Pre-commit Secret Scanning (PreToolUse Hook)
 
@@ -255,7 +235,6 @@ This bundle protects against the following threat categories:
 | 4 | **Privilege Escalation** | Claude runs `sudo`, creates persistence mechanisms, or installs system packages | `settings.json` denies `sudo`, `su`, `crontab`, `launchctl`, `systemctl`, `apt install`, `npm install -g` |
 | 5 | **MCP Server Injection** | Connected MCP server returns a response containing embedded instructions | MCP config ships empty; `CLAUDE.md` classifies tool results as untrusted data |
 | 6 | **Shadow Usage / Audit Gap** | Claude is used on endpoints without security team visibility | OTel telemetry exports all tool calls, API requests, costs, and permission decisions to your SIEM |
-| 7 | **Unauthorized Account** | Personal or unauthorized Anthropic account used on a corporate endpoint | SessionStart hook validates account ID against an allowlist before session begins |
 | 8 | **Secret Commit** | Claude accidentally commits credentials, API keys, or tokens to git | PreToolUse hook scans staged changes with gitleaks/trufflehog and blocks the commit |
 
 ---
